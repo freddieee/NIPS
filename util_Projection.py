@@ -9,8 +9,9 @@
 
 import numpy as np
 import cv2
+from plyfile import PlyData, PlyElement
 
-def project_3d_on_2d(obj="ape",id=0,points=np.ones((3,3))):
+def project_3d_on_2d(obj="ape",id=0,points=None):
 	root = "../linemod/"+obj	
 	#0.read transformation matrix
 	Transformation = []
@@ -22,6 +23,14 @@ def project_3d_on_2d(obj="ape",id=0,points=np.ones((3,3))):
 	Transformation = np.array(Transformation,dtype=np.float64).reshape(3,4)
 
 	#1.read points
+	if points is None:
+		#read the points in OLDmesh.py
+		plydata = PlyData.read(root+"/OLDmesh.ply")
+		#1.2save the point cloud data into a n*3 matrix
+		nx = np.expand_dims(plydata['vertex']['x'],0) 
+		ny = np.expand_dims(plydata['vertex']['y'],0) 
+		nz = np.expand_dims(plydata['vertex']['z'],0)
+		points = np.vstack((nx,ny,nz)) / 10.0
 	points = np.dot(Transformation[:,:-1],points)
 	points = points + Transformation[:,-1:]*100
 	#2.read R,T matrix
@@ -62,7 +71,7 @@ if __name__ == '__main__':
 	# Transformation = np.vstack((Transformation,np.array([[0.,0.,0.,1.]])))
 
 	#1.read a ply file
-	from plyfile import PlyData, PlyElement
+
 
 	plydata = PlyData.read("OLDmesh.ply")
 

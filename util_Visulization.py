@@ -69,4 +69,4 @@ def draw_gth_RGB(obj="ape",id=0):
 
 
 if __name__ == '__main__':
-	draw_gth_RGB("ape", 1008)
+	draw_gth_RGB("ape", 1)
