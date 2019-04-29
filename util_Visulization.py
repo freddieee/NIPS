@@ -41,7 +41,7 @@ def draw_gth_RGB(obj="ape",id=0):
 		pointslist.append(tuple(newpoints[:3,i]/z[:,i]))
 
 		# pointslist.append(tuple(newpoints[:,i]))
-		# cv2.circle(img,(int(pointslist[i][0]),int(pointslist[i][1])),5,(0,0,255))
+		cv2.circle(img,(int(pointslist[i][0]),int(pointslist[i][1])),5,(0,0,255))
 		# img[int(pointslist[i][0]),int]
 	red = (0,0,255)
 	lines = [(0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(0,4),(1,5),(2,6),(3,7),(7,4)]
@@ -51,20 +51,20 @@ def draw_gth_RGB(obj="ape",id=0):
 
 	# #1.read a ply file
 	
-	# plydata = PlyData.read(linemod_data+obj+"/OLDmesh.ply")
+	plydata = PlyData.read(linemod_data+obj+"/OLDmesh.ply")
 
-	# #1.2save the point cloud data into a n*3 matrix
-	# nx = np.expand_dims(plydata['vertex']['x'],0) 
-	# ny = np.expand_dims(plydata['vertex']['y'],0) 
-	# nz = np.expand_dims(plydata['vertex']['z'],0)
-	# points = np.vstack((nx,ny,nz)) / 10.0
-	# newpoints = project_3d_on_2d(obj,id,points)
-	# pointslist = []
-	# z = np.vstack((newpoints[-1,:],newpoints[-1,:],newpoints[-1,:]))
-	# for i in range(newpoints.shape[1]):
-	# 	pointslist.append(tuple(newpoints[:3,i]/z[:,i]))
-	# 	# pointslist.append(tuple(newpoints[:,i]))
-	# 	cv2.circle(img,(int(pointslist[i][0]),int(pointslist[i][1])),5,(0,0,255))
+	#1.2save the point cloud data into a n*3 matrix
+	nx = np.expand_dims(plydata['vertex']['x'],0) 
+	ny = np.expand_dims(plydata['vertex']['y'],0) 
+	nz = np.expand_dims(plydata['vertex']['z'],0)
+	points = np.vstack((nx,ny,nz)) / 10.0
+	newpoints = project_3d_on_2d(obj,id,points)
+	pointslist = []
+	z = np.vstack((newpoints[-1,:],newpoints[-1,:],newpoints[-1,:]))
+	for i in range(newpoints.shape[1]):
+		pointslist.append(tuple(newpoints[:3,i]/z[:,i]))
+		# pointslist.append(tuple(newpoints[:,i]))
+		cv2.circle(img,(int(pointslist[i][0]),int(pointslist[i][1])),5,(0,0,255))
 	cv2.imwrite("color{0}.jpg".format(id),img)
 
 
