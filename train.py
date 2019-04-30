@@ -18,7 +18,7 @@ from torch.autograd import Variable
 import numpy as np
 import math
 import argparse
-
+from util_loss import loss_func
 parser = argparse.ArgumentParser(description='CNNGeometric PyTorch implementation')
 parser.add_argument('--batchSize', type=int, default=64, help='training batch size')
 parser.add_argument('--worker', type=int, default=1, help='data loader worker')
@@ -46,7 +46,7 @@ imgNet = ImageNet()
 pointNet = PointNetfeat().cuda()
 continuousField = ContinuousField().cuda()
 
-optimizer = optim.Adam(continuousField.parameters(), lr=1e-3, betas=(0.5, 0.999), eps=1e-06)
+optimizer = optim.Adam([continuousField.parameters(),pointNet.parameters()], lr=1e-3, betas=(0.5, 0.999), eps=1e-06)
 
 continuousField.train()
 pointNet.train()
@@ -54,8 +54,10 @@ pointNet.train()
 for epoch in range(nepoch):
 	total_loss = 0
 	for id,model_cls,pointcloud,rgb in enumerate(train_loader):
+		rgb = Variable(rgb).cuad()
+		pointcloud = Variable(pointcloud).cuda()
 		pc_feature = pointNet(pointcloud)
-		rgb_feature = imgNet()
+		rgb_feature = imgNet(rgb)
 		intergratingFeature = intergratingFeature(pc_feature,rgb_feature)
 		pred_x_y = continuousField(pointcloud,intergratingFeature)
 		gth_x_y = project_3d_on_2d(obj=model_cls,id,pointcloud)
@@ -64,7 +66,7 @@ for epoch in range(nepoch):
 		optimizer.zero_grad()
 		loss.backward()
 		optimizer.step()
-	if epoch % 5 == 0:
+	if epoch % 10 == 0:
 		torch.save(pointNet.state_dict(),"weigths/pointNet/{epoch}.pth")
 		torch.save(continuousField.state_dict(),"weigths/continuousField/{epoch}.pth")
 	print("Epoch {0} finished, total loss:{1}".format(epoch,total_loss))

@@ -53,9 +53,9 @@ class STN3d(nn.Module):
 		x = x.view(-1, 3, 3)
 		return x
 
-
+#input:B*3*2048 output:B*1024
 class PointNetfeat(nn.Module):
-	def __init__(self, num_points = 2500, global_feat = True, trans = False):
+	def __init__(self, num_points = 2048, global_feat = True, trans = False):
 		super(PointNetfeat, self).__init__()
 		self.stn = STN3d(num_points = num_points)
 		self.conv1 = torch.nn.Conv1d(3, 64, 1)
@@ -93,7 +93,7 @@ class PointNetfeat(nn.Module):
 			return x
 
 class FeatureRegression(nn.Module):
-    def __init__(self, inputdim=128,bottleneck=1024):
+    def __init__(self, inputdim=2048,bottleneck=1024):
         super(FeatureRegression, self).__init__()
         self.inputdim=inputdim
         self.conv = nn.Sequential(
@@ -102,12 +102,17 @@ class FeatureRegression(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv1d(2048, 1024, 1),
             nn.BatchNorm1d(1024),
+            nn.Conv1d(1024, 256, 1),
+            nn.BatchNorm1d(256),
+            nn.Conv1d(256,1,1),
+            nn.BatchNorm1d(1),
             nn.ReLU(inplace=True),
         )
 
     def forward(self, x):
         x = self.conv(x)
         return x
+
 class ImageNet(torch.nn.Module):
     def __init__(self, use_cuda=True, feature_extraction_cnn='resnet101', last_layer=''):
         super(ImageNet, self).__init__()
@@ -146,26 +151,63 @@ class ImageNet(torch.nn.Module):
         return self.model(image_batch)
 
 
-class ContinuousField(torch.nn.module):
-	def __init__(self):
-		wor
-	def forward(self):
+class ContinuousField(nn.Module):
+    def __init__(self):
+        super(ContinuousField, self).__init__()
+        self.fg = FeatureRegression()
+        self.net = nn.Sequential(
+            nn.Conv1d(1024 + 3, 1024, 1),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(1024, 1024, 1),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(1024, 1024, 1),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(1024, 512, 1),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(512, 256, 1),
+            nn.BatchNorm1d(256),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(256, 64, 1),
+            nn.BatchNorm1d(64),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(64, 3, 1),
+        )
+
+        self.th = nn.Tanh()
+
+     #x: B*2048*1024 ,pc:B*3*2048 output:B*3*N
+    def forward(self,pc,x):
+    	x = self.fg(x)  #B*1*1024
+    	x = x.transpose(1,2) #B*1024*1
+    	x = x.repeat(1,1,2048)
+    	print x.shape,pc.shape
+    	x = torch.cat((pc,x),1)
+    	x = self.net(x)
+    	x = self.th(x)
+    	return x
+
+#pc_feature:B*1024 rgb_feature:B*1024*32*32 output = B*2048*1024	
 def intergrateFeature(pc_feature,rgb_feature):
 	return pc_feature+rgb_feature
 
 if __name__ == '__main__':
-	rgbNet = RGBNet()
 	imgNet = ImageNet()
 	img = cv2.imread("test.jpg")
 	regression = FeatureRegression().cuda()
 	img = torch.from_numpy(img).float().cuda()
-	data = torch.randn(1,3,640,480).cuda()
-	x = rgbNet(data,None)
-	x = regression(x)
-	z = imgNet(data)
+	data = torch.randn(1,3,2048).cuda()
+	# data = torch.randn(1,2048,1024).cuda()
+	# tp = torch.randn(1,3,2048).cuda()
+	# cf = ContinuousField().cuda()
+	# x = cf(tp,data)
+	# fr = FeatureRegression().cuda()
+	# x = fr(data)
+	# z = imgNet(data)
 	pointNet = PointNetfeat().cuda()
-	data = torch.randn(1,3,2048).float().cuda()
+	# data = torch.randn(1,3,2048).float().cuda()
 	y = pointNet(data)
-	
-
-	print x.shape,y.shape, z.shape
+	print y.shape
