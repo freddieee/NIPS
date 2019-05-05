@@ -19,9 +19,13 @@ import numpy as np
 import math
 import argparse
 from util_loss import loss_func
+from data_linemod import Linemod_Dataset
+from model_network import ImageNet, PointNetfeat, ContinuousField, Network_Util
+import torch.optim as optim
+from util_Projection import project_3d_on_2d
 parser = argparse.ArgumentParser(description='CNNGeometric PyTorch implementation')
-parser.add_argument('--batchSize', type=int, default=64, help='training batch size')
-parser.add_argument('--worker', type=int, default=1, help='data loader worker')
+parser.add_argument('--batchSize', type=int, default=1, help='training batch size')
+parser.add_argument('--worker', type=int, default=0, help='data loader worker')
 parser.add_argument('--nepoch', type=int, default=60, help='number of training epochs')
 parser.add_argument('--ngpu', type=int, default=4, help='number of gpus')
 parser.add_argument('--main_gpu', type=int, default=0, help='main gpu')
@@ -46,25 +50,30 @@ imgNet = ImageNet()
 pointNet = PointNetfeat().cuda()
 continuousField = ContinuousField().cuda()
 
-optimizer = optim.Adam([continuousField.parameters(),pointNet.parameters()], lr=1e-3, betas=(0.5, 0.999), eps=1e-06)
-
+optimizer = optim.Adam(pointNet.parameters(), lr=1e-3, betas=(0.5, 0.999), eps=1e-06)
+optimizer_continuousField = optim.Adam(continuousField.parameters(), lr=1e-3, betas=(0.5, 0.999), eps=1e-06)
 continuousField.train()
 pointNet.train()
 #run the epoch
-for epoch in range(nepoch):
+for epoch in range(opt.nepoch):
 	total_loss = 0
-	for id,model_cls,pointcloud,rgb in enumerate(train_loader):
-		rgb = Variable(rgb).cuad()
-		pointcloud = Variable(pointcloud).cuda()
+	for index,x in enumerate(train_loader):
+		id,model_cls,pointcloud,rgb = x
+		rgb = Variable(rgb).float().cuda()
+		pointcloud = Variable(pointcloud).float().cuda()
+
 		pc_feature = pointNet(pointcloud)
 		rgb_feature = imgNet(rgb)
-		intergratingFeature = intergratingFeature(pc_feature,rgb_feature)
+		intergratingFeature = Network_Util.intergrateFeature(pc_feature,rgb_feature)
 		pred_x_y = continuousField(pointcloud,intergratingFeature)
-		gth_x_y = project_3d_on_2d(obj=model_cls,id,pointcloud)
+		print("model_cls",type(model_cls),model_cls)
+		gth_x_y = project_3d_on_2d(model_cls[0],id,pointcloud)
 		loss = loss_func(pred_x_y,gth_x_y)
 		total += loss
 		optimizer.zero_grad()
+		optimizer_continuousField.zero_grad()
 		loss.backward()
+		optimizer.step()
 		optimizer.step()
 	if epoch % 10 == 0:
 		torch.save(pointNet.state_dict(),"weigths/pointNet/{epoch}.pth")
@@ -77,7 +86,7 @@ for epoch in range(nepoch):
 		rgb_feature = imgNet()
 		intergratingFeature = intergratingFeature(pc_feature,rgb_feature)
 		pred_x_y = continuousField(pointcloud,intergratingFeature)
-		gth_x_y = project_3d_on_2d(obj=model_cls,id,pointcloud)
+		gth_x_y = project_3d_on_2d(model_cls,id,pointcloud)
 		positive,accuracy = evaluate_projection(pred_x_y,gth_x_y)
 		positives += positive 
 	print("Epoch{0} :accuracy is {:.2%}%".format(epoch, positive/len(test_loader)))

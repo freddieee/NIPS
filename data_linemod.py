@@ -64,7 +64,8 @@ def readPointcloud(root):
 #read the RGB and retuen a 3*640*480 tensor
 def readRGB(rgb_path):
 	img = cv2.imread(rgb_path)
-	img = cv2.transpose(img,(0,1,2,3))
+	img =  cv2.resize(img, (512,512), interpolation = cv2.INTER_AREA)
+	# img = cv2.transpose(img,(0,1,2,3))
 	return img.transpose((2,0,1))
 
 
