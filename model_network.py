@@ -71,7 +71,7 @@ class PointNetfeat(nn.Module):
 		self.num_points = num_points
 		self.global_feat = global_feat
 	def forward(self, x):
-		print("pointcloud shape",x.shape)
+
 		batchsize = x.size()[0]
 		if self.trans:
 			trans = self.stn(x)
@@ -201,11 +201,9 @@ class Network_Util(object):
 
 	@staticmethod
 	def intergrateFeature(pc_feature,rgb_feature):
-		print("pc feature:", pc_feature.shape)
-		print("rgb_feature:", rgb_feature.shape)
+
 		pc_feature = pc_feature.unsqueeze(-1).unsqueeze(-1).repeat(1,1,32,32)
 		x = torch.cat((pc_feature,rgb_feature),1).view(-1,2048,1024)
-		print x.shape
 		return x
 
 if __name__ == '__main__':

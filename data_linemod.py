@@ -9,6 +9,7 @@ import os
 import cv2
 from plyfile import PlyData, PlyElement
 import numpy as np
+from util_Projection import project_3d_on_2d
 class Linemod_Dataset(data.Dataset):
   def __init__(self, train = True,root="../linemod/"):
 		self.root = root
@@ -21,11 +22,15 @@ class Linemod_Dataset(data.Dataset):
 			if train:
 				for i in range(nums*4/5):
 					dir_image = dir_obj+"/color{0}.jpg".format(i)
-					self.list_IDs.append((i,obj,pointcloud,dir_image))
+					gth_x_y = project_3d_on_2d(obj,i,pointcloud)
+					gth_x_y = torch.from_numpy(gth_x_y).float()
+					self.list_IDs.append((i,gth_x_y,pointcloud,dir_image))
 			else:
 				for i in range(nums*4/5,nums):
 					dir_image = dir_obj+"/color{0}.jpg".format(i)
-					self.list_IDs.append((i,obj,pointcloud,dir_image))	        		
+					gth_x_y = project_3d_on_2d(obj,i,pointcloud)
+					gth_x_y = torch.from_numpy(gth_x_y).float()
+					self.list_IDs.append((i,gth_x_y,pointcloud,dir_image))	        		
 		
 
   def __len__(self):
@@ -61,7 +66,7 @@ def readPointcloud(root):
 	points = np.dot(Transformation[:,:-1],points)
 	points = points + Transformation[:,-1:]*100
 	return points
-#read the RGB and retuen a 3*640*480 tensor
+#read the RGB and return a 3*640*480 tensor
 def readRGB(rgb_path):
 	img = cv2.imread(rgb_path)
 	img =  cv2.resize(img, (512,512), interpolation = cv2.INTER_AREA)

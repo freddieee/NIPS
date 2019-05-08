@@ -56,7 +56,8 @@ def project_3d_on_2d(obj="ape",id=0,points=None):
 	                       [0., 573.57043, 242.04899,0.],
 							[0., 0., 1.,0.]])
 	newpoints = np.dot(Plane,np.dot(RT,points))
-	return newpoints
+
+	return newpoints[:2]/newpoints[-1]
 
 if __name__ == '__main__':
 	
